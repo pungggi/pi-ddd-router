@@ -2,3 +2,6 @@ node_modules/
 dist/
 .test-tmp/
 *.tsbuildinfo
+node_modules/
+dist/
+bash.exe.stackdump

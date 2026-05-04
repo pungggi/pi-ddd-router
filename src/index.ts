@@ -8,6 +8,7 @@
  * Usage:
  *   -e ./node_modules/pi-ddd-router/extension.ts
  *   or place a symlink in .pi/extensions/
+ *   (Path must be relative to project root where pi is invoked)
  *
  * DDD configuration is convention-based:
  *   - contracts/interfaces/       — contract files
@@ -16,13 +17,17 @@
  *   - glossary.md                 — root ubiquitous language
  *   - .pi/state.json              — active context + checked contracts
  *   - .pi/settings.json           — auggieRouter settings
+ *
+ * This package ships TypeScript source. Pi's extension loader (tsx) resolves
+ * .js imports to .ts at runtime. For plain Node consumption, run `npm run build`
+ * first and import from dist/.
  */
 
 import { createRouter, createExtensionBridge } from "pi-auggie-router";
 import { registerDddWorkflow } from "pi-ddd/workflow";
 import { buildDddSystemPromptAppendix } from "pi-ddd/prompt";
 import { buildDddToolMiddleware } from "pi-ddd/middleware";
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
 
 /**
  * Combined extension entry point.
@@ -43,15 +48,18 @@ export default function dddRouter(pi: ExtensionAPI): void {
   // 1. Register all DDD tools, commands, and hooks
   registerDddWorkflow(pi);
 
-  // 2. Mount the auggie router via the extension bridge
+  // 2. Mount the auggie router via the extension bridge.
+  //    Both the system prompt appendix and the middleware are lazy:
+  //    they call process.cwd() at execution time, not at mount time,
+  //    so cwd drift is handled correctly.
   const host = createExtensionBridge(pi);
-  const cwd = process.cwd();
 
   const router = createRouter(host, {
     // Lazy callback: re-reads DDD state (active context, glossaries)
     // on every /skill: execution so context switches are picked up.
-    systemPromptAppendix: () => buildDddSystemPromptAppendix(cwd),
-    additionalToolMiddleware: [buildDddToolMiddleware(cwd)],
+    systemPromptAppendix: () => buildDddSystemPromptAppendix(process.cwd()),
+    // Lazy middleware: re-reads cwd at execution time
+    additionalToolMiddleware: [buildDddToolMiddleware(process.cwd())],
   });
 
   // 3. C-6 fallback: register /skill as a command so users can invoke
@@ -59,10 +67,13 @@ export default function dddRouter(pi: ExtensionAPI): void {
   //    /skill: prefixes automatically via onUserInput.
   pi.registerCommand("skill", {
     description:
-      "Execute a skill via the auggie router (fallback if /skill: interception is unavailable)",
-    handler: async (args: string, _ctx) => {
+      "Execute a skill via the auggie router. Usage: /skill <name>",
+    handler: async (args: string, ctx: ExtensionCommandContext) => {
       const skillName = args.trim();
-      if (!skillName) return;
+      if (!skillName) {
+        ctx.ui.notify("Usage: /skill <name>", "error");
+        return;
+      }
       await router.trigger(`/skill:${skillName}`);
     },
   });

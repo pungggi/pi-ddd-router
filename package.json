@@ -1,24 +1,28 @@
 {
   "name": "pi-ddd-router",
   "version": "0.1.0",
-  "description": "Combined DDD workflow enforcement + Auggie sub-agent routing for Pi. Mounts both systems in a single extension with zero duplicated wiring.",
+  "private": true,
+  "description": "Combined DDD workflow enforcement + Auggie sub-agent routing for Pi. One extension, zero duplicated wiring. Monorepo-only — compose pi-ddd + pi-auggie-router in your own extension, or use this package directly in a workspace.",
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./src/index.ts",
-      "types": "./src/index.ts"
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
     }
   },
   "files": [
-    "src",
+    "dist",
     "extension.ts",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
+    "clean": "rimraf dist",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run clean && npm run build",
     "test": "node --test --test-reporter=spec --import tsx tests/**/*.test.ts"
   },
   "keywords": [
@@ -37,8 +41,8 @@
     "node": ">=20.6.0"
   },
   "peerDependencies": {
-    "pi-auggie-router": "file:../pi-auggie-router",
-    "pi-ddd": "file:../pi-ddd",
+    "pi-auggie-router": "^1.0.0",
+    "pi-ddd": "^0.2.0",
     "@mariozechner/pi-coding-agent": ">=0.70.6"
   },
   "devDependencies": {
@@ -46,6 +50,7 @@
     "pi-ddd": "file:../pi-ddd",
     "@mariozechner/pi-coding-agent": "^0.70.6",
     "@types/node": "^22.0.0",
+    "rimraf": "^5.0.5",
     "tsx": "^4.21.0",
     "typescript": "^5.6.0"
   },

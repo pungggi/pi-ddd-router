@@ -9,6 +9,19 @@ DDD enforcement rules (bounded-context scoping, contract gates, ubiquitous
 language) automatically flow into router-spawned sub-agents as system prompt
 directives and tool-call middleware.
 
+## Monorepo package
+
+This package lives in the same monorepo as its dependencies (`pi-ddd`,
+`pi-auggie-router`) and is not published to the npm registry. To use it:
+
+1. Clone the monorepo and reference it via `file:` in your project, or
+2. Copy `src/index.ts` into your own extension and import from `pi-ddd` and
+   `pi-auggie-router` directly (they are independently usable).
+
+If you need a published package, consider publishing `pi-ddd` and
+`pi-auggie-router` first (they have no `"private": true`), then publish
+this package with updated peer dependency ranges.
+
 ## What you get
 
 - **`/context <name>`** — activate a bounded context; edits outside
@@ -16,32 +29,23 @@ directives and tool-call middleware.
 - **`/skill:<name>`** — execute a skill through the auggie router with
   DDD rules injected
 - **`/skill <name>`** — fallback command if `/skill:` interception is
-  unavailable in extension mode
+  unavailable in extension mode (shows usage hint on empty invocation)
 - **`check_contracts`** tool — contract gate for tracked symbols
 - **`/ddd-fp <reason>`** — flag false-positive gate blocks
 
-## Installation
-
-```bash
-npm install pi-ddd-router
-```
-
-Peer dependencies (`pi-auggie-router`, `pi-ddd`, `@mariozechner/pi-coding-agent`)
-must also be installed.
-
 ## Usage
 
-### Option 1: -e flag
+### Option 1: -e flag (from project root)
 
 ```bash
-pi -e ./node_modules/pi-ddd-router/extension.ts
+pi -e ./path/to/pi-ddd-router/extension.ts
 ```
 
 ### Option 2: .pi/extensions/ symlink
 
 ```bash
 cd .pi/extensions
-ln -s ../../node_modules/pi-ddd-router/extension.ts ddd-router.ts
+ln -s ../../path/to/pi-ddd-router/extension.ts ddd-router.ts
 ```
 
 ### Option 3: Programmatic
@@ -63,9 +67,23 @@ import dddRouter from "pi-ddd-router";
    - DDD system prompt appendix (active context, glossaries, contract rules)
    - DDD tool middleware (blocks edits to contract-tracked files)
 
-4. **Lazy evaluation**: The DDD appendix is rebuilt on every `/skill:` execution,
-   so context switches (`/context billing` → `/context identity`) are picked up
-   immediately.
+4. **Lazy evaluation**: Both the DDD appendix and the middleware call
+   `process.cwd()` at execution time (not mount time), so cwd drift and
+   context switches (`/context billing` → `/context identity`) are handled
+   correctly.
+
+## Build
+
+```bash
+npm run build     # tsc → dist/
+npm run clean     # rm -rf dist
+npm run typecheck # tsc --noEmit
+npm test          # node:test with tsx
+```
+
+The package ships pre-built `dist/` for programmatic Node usage.
+Pi's extension loader (tsx) resolves `.js` imports to `.ts` at runtime,
+so `extension.ts` works as-is when loaded by Pi.
 
 ## Configuration
 
