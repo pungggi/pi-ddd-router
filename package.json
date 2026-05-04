@@ -42,7 +42,7 @@
   },
   "peerDependencies": {
     "pi-auggie-router": "^1.0.0",
-    "pi-ddd": "^0.2.0",
+    "pi-ddd": ">=0.2.0 <1.0.0",
     "@mariozechner/pi-coding-agent": ">=0.70.6"
   },
   "devDependencies": {

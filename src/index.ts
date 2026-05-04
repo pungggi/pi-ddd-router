@@ -65,6 +65,11 @@ export default function dddRouter(pi: ExtensionAPI): void {
   // 3. C-6 fallback: register /skill as a command so users can invoke
   //    /skill <name> explicitly when the extension bridge cannot intercept
   //    /skill: prefixes automatically via onUserInput.
+  //    Skill names are validated against [a-zA-Z0-9_-]+ to prevent path
+  //    traversal, whitespace, and control-char injection into the router's
+  //    file-lookup path.
+  const VALID_SKILL_NAME = /^[a-zA-Z0-9_-]+$/;
+
   pi.registerCommand("skill", {
     description:
       "Execute a skill via the auggie router. Usage: /skill <name>",
@@ -72,6 +77,13 @@ export default function dddRouter(pi: ExtensionAPI): void {
       const skillName = args.trim();
       if (!skillName) {
         ctx.ui.notify("Usage: /skill <name>", "error");
+        return;
+      }
+      if (!VALID_SKILL_NAME.test(skillName)) {
+        ctx.ui.notify(
+          `Invalid skill name "${skillName}". Use only letters, digits, hyphens, underscores.`,
+          "error",
+        );
         return;
       }
       await router.trigger(`/skill:${skillName}`);
